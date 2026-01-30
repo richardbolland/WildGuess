@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Wild Guess - Live Research Grade</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rubik:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Rubik', sans-serif; background-color: #f0fdf4; overscroll-behavior: none; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .pop { animation: pop 0.3s ease-out; }
+
+        @keyframes swap {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .swap-anim { animation: swap 0.15s ease-in-out; }
+
+        .leaflet-container { height: 100%; width: 100%; border-radius: 0.5rem; z-index: 0; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+
+
+        .custom-pin {
+            background-color: #ef4444;
+            width: 16px; 
+            height: 16px; 
+            border-radius: 50%; 
+            border: 3px solid white; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const ANIMAL_GROUPS = [
+            {
+                emoji: "🐺", name: "Canines",
+                animals: [
+                    { name: "Wolf", sciName: "Canis lupus", clue: "Largest wild canine; known for pack hunting and howling." },
+                    { name: "Coyote", sciName: "Canis latrans", clue: "Versatile North American scavenger; highly adaptable vocalizer." },
+                    { name: "Fox", sciName: "Vulpes vulpes", clue: "Small omnivore with a distinctive bushy tail and cunning reputation." },
+                    { name: "Dingo", sciName: "Canis lupus dingo", clue: "Wild dog native to Australia; rarely barks." },
+                    { name: "Wild Dog", sciName: "Lycaon pictus", clue: "Endangered canine with a mottled 'painted' coat; large rounded ears." },
+                    { name: "Jackal", sciName: "Canis aureus", clue: "Opportunistic omnivore of Eurasia; looks like a small wolf." }
+                ]
+            },
+            {
+                emoji: "🦁", name: "Felines",
+                animals: [
+                    { name: "Lion", sciName: "Panthera leo", clue: "Social cat living in prides; males possess thick manes." },
+                    { name: "Tiger", sciName: "Panthera tigris", clue: "Largest cat species; famous for vertical dark stripes on orange fur." },
+                    { name: "Cheetah", sciName: "Acinonyx jubatus", clue: "Fastest land animal; has non-retractable claws and tear marks." },
+                    { name: "Jaguar", sciName: "Panthera onca", clue: "Powerful swimmer with rosettes that have spots inside them." },
+                    { name: "Snow Leopard", sciName: "Panthera uncia", clue: "Ghost of the mountains; adapted for cold, high-altitude terrain." },
+                    { name: "Cougar", sciName: "Puma concolor", clue: "Large cat with many names: Puma, Mountain Lion, Panther." }
+                ]
+            },
+            {
+                emoji: "🐻", name: "Bears",
+                animals: [
+                    { name: "Bear (Brown)", sciName: "Ursus arctos", clue: "Large omnivore with a shoulder hump; includes Grizzlies." },
+                    { name: "Bear (Polar)", sciName: "Ursus maritimus", clue: "Marine mammal adapted for Arctic ice; translucent fur appears white." },
+                    { name: "Panda", sciName: "Ailuropoda melanoleuca", clue: "Bear that eats almost exclusively bamboo; has a 'false thumb'." },
+                    { name: "Bear (Black)", sciName: "Ursus americanus", clue: "Common North American bear; excellent tree climber." },
+                    { name: "Bear (Sun)", sciName: "Helarctos malayanus", clue: "Smallest bear species; has a golden chest patch and long tongue." }
+                ]
+            },
+            {
+                emoji: "🐒", name: "Primates",
+                animals: [
+                    { name: "Gorilla", sciName: "Gorilla", clue: "Largest living primate; ground-dwelling and primarily herbivorous." },
+                    { name: "Chimpanzee", sciName: "Pan troglodytes", clue: "Highly intelligent ape; our closest living genetic relative." },
+                    { name: "Orangutan", sciName: "Pongo", clue: "Red-haired 'Person of the Forest'; arboreal ape of SE Asia." },
+                    { name: "Lemur", sciName: "Lemur catta", clue: "Social prosimian from Madagascar with a black-and-white striped tail." },
+                    { name: "Baboon", sciName: "Papio anubis", clue: "Ground-dwelling monkey with a dog-like muzzle." },
+                    { name: "Mandrill", sciName: "Mandrillus sphinx", clue: "Largest monkey; known for its colorful blue and red face." }
+                ]
+            },
+            {
+                emoji: "🐭", name: "Small Mammals", 
+                animals: [
+                    { name: "Mouse", sciName: "Mus musculus", clue: "Small rodent with a pointed snout; commensal with humans." },
+                    { name: "Rat", sciName: "Rattus norvegicus", clue: "Highly successful rodent; often found in urban environments." },
+                    { name: "Squirrel", sciName: "Sciurus vulgaris", clue: "Tree-dwelling rodent with tufted ears; native to Eurasia." },
+                    { name: "Rabbit", sciName: "Oryctolagus cuniculus", clue: "Social burrowing lagomorph with long ears." },
+                    { name: "Hedgehog", sciName: "Erinaceus europaeus", clue: "Spiny mammal that rolls into a tight ball for defense." },
+                    { name: "Raccoon", sciName: "Procyon lotor", clue: "Nocturnal omnivore with a 'bandit mask' and dexterous paws." },      
+                    { name: "Skunk", sciName: "Mephitis mephitis", clue: "Known for spraying a noxious, strong-smelling liquid." }, 
+                    { name: "Meerkat", sciName: "Suricata suricatta", clue: "Small mongoose living in clans; known for 'sentry' standing behavior." }  
+                ]
+            },
+            {
+                emoji: "🔮", name: "Unique Mammals", 
+                animals: [
+                    { name: "Platypus", sciName: "Ornithorhynchus anatinus", clue: "Egg-laying mammal with a duck bill and beaver tail." },
+                    { name: "Sloth", sciName: "Bradypus variegatus", clue: "Slow-moving arboreal mammal that hangs upside down." },
+                    { name: "Armadillo", sciName: "Dasypus novemcinctus", clue: "Mammal covered in leathery armor plates; can jump when startled." },
+                    { name: "Bat", sciName: "Tadarida brasiliensis", clue: "Flying mammal that forms massive colonies in caves." },
+                    { name: "Beaver", sciName: "Castor fiber", clue: "Semi-aquatic rodent known for building dams and lodges." }, 
+                    { name: "Capybara", sciName: "Hydrochoerus hydrochaeris", clue: "World's largest rodent; semi-aquatic and very chill." } 
+                ]
+            },
+            {
+                emoji: "🐮", name: "Farm",
+                animals: [
+                    { name: "Cow", sciName: "Bos taurus", clue: "Large domesticated ungulate raised for milk and meat." },
+                    { name: "Pig", sciName: "Sus scrofa", clue: "Highly intelligent, omnivorous hoofed mammal with a snout." },
+                    { name: "Sheep", sciName: "Ovis aries", clue: "Ruminant raised for wool; closely related to goats." },
+                    { name: "Goat", sciName: "Capra hircus", clue: "Agile climber with horizontal pupils and a beard." },
+                    { name: "Chicken", sciName: "Gallus gallus", clue: "Domesticated junglefowl; the most common bird in the world." },
+                    { name: "Horse", sciName: "Equus caballus", clue: "Single-toed ungulate used for riding and work for millennia." },
+                    { name: "Donkey", sciName: "Equus asinus", clue: "Sturdy member of the horse family; known for its loud bray." },
+                    { name: "Llama", sciName: "Lama glama", clue: "South American camelid used as a pack animal; woolly coat." }
+                ]
+            },
+            {
+                emoji: "🐘", name: "Herbivores",
+                animals: [
+                    { name: "Giraffe", sciName: "Giraffa", clue: "Tallest land animal; possesses a very long neck and blue tongue." },
+                    { name: "Zebra", sciName: "Equus quagga", clue: "African equid famous for its black-and-white striped coat." },
+                    { name: "Elephant", sciName: "Loxodonta africana", clue: "Largest land animal; has large ears and a trunk." },
+                    { name: "Hippo", sciName: "Hippopotamus amphibius", clue: "Large, semi-aquatic mammal; name means 'River Horse'." },
+                    { name: "Moose", sciName: "Alces alces", clue: "Largest deer species; males grow massive palmate antlers." },
+                    { name: "Deer", sciName: "Cervus elaphus", clue: "Widespread deer of Europe/Asia; males are called stags." },
+                    { name: "Rhino", sciName: "Ceratotherium simum", clue: "Large herbivore with a wide mouth and two horns." }
+                ]
+            },
+            {
+                emoji: "🦌", name: "Antelopes",
+                animals: [
+                    { name: "Wildebeest", sciName: "Connochaetes taurinus", clue: "Large African antelope known for massive annual migrations." },
+                    { name: "Impala", sciName: "Aepyceros melampus", clue: "Medium-sized antelope capable of impressive leaps." },
+                    { name: "Gazelle", sciName: "Eudorcas thomsonii", clue: "Swift antelope of the African plains; prey for cheetahs." },
+                    { name: "Oryx", sciName: "Oryx gazella", clue: "Desert-adapted antelope with long, straight, spear-like horns." },
+                    { name: "Kudu", sciName: "Tragelaphus strepsiceros", clue: "Woodland antelope with spiraled horns and white stripes." },
+                    { name: "Springbok", sciName: "Antidorcas marsupialis", clue: "National animal of South Africa; known for 'pronking' jumps." }
+                ]
+            },
+            {
+                emoji: "🦘", name: "Marsupials",
+                animals: [
+                    { name: "Kangaroo", sciName: "Macropus rufus", clue: "Largest marsupial; moves by hopping on powerful hind legs." },
+                    { name: "Koala", sciName: "Phascolarctos cinereus", clue: "Arboreal specialist that eats eucalyptus leaves." },
+                    { name: "Wombat", sciName: "Vombatus ursinus", clue: "Sturdy burrower with a backward-facing pouch." },
+                    { name: "Tasmanian Devil", sciName: "Sarcophilus harrisii", clue: "Loud, carnivorous scavenger found only on one island." },
+                    { name: "Opossum", sciName: "Didelphis virginiana", clue: "North America's only marsupial; plays dead when threatened." }
+                ]
+            },
+            {
+                emoji: "🦅", name: "Raptors",
+                animals: [
+                    { name: "Eagle", sciName: "Haliaeetus leucocephalus", clue: "Sea eagle with a white head; national bird of the USA." },
+                    { name: "Owl", sciName: "Tyto alba", clue: "Silent nocturnal hunter with a distinctive heart-shaped face." },
+                    { name: "Hawk", sciName: "Buteo jamaicensis", clue: "Common hawk of North America with a raspy scream." },
+                    { name: "Falcon", sciName: "Falco peregrinus", clue: "Fastest animal in the world when diving (stooping)." },
+                    { name: "Vulture", sciName: "Cathartes aura", clue: "Scavenger that finds carrion using an excellent sense of smell." },
+                    { name: "Osprey", sciName: "Pandion haliaetus", clue: "Fish-eating raptor that dives feet-first into water." }
+                ]
+            },
+            {
+                emoji: "🦆", name: "Water Birds",
+                animals: [
+                    { name: "Penguin", sciName: "Aptenodytes forsteri", clue: "Tallest penguin; breeds during the Antarctic winter." },
+                    { name: "Pelican", sciName: "Pelecanus occidentalis", clue: "Large coastal bird that plunge-dives for fish." },
+                    { name: "Swan", sciName: "Cygnus olor", clue: "Large white waterfowl with a curved neck and orange bill." },
+                    { name: "Flamingo", sciName: "Phoenicopterus roseus", clue: "Pink wading bird; gets its color from the shrimp it eats." },
+                    { name: "Stork", sciName: "Ciconia ciconia", clue: "Long-legged migratory bird often associated with nesting on roofs." },
+                    { name: "Duck", sciName: "Anas platyrhynchos", clue: "Ubiquitous wild duck; males have an iridescent green head." }
+                ]
+            },
+            {
+                emoji: "🦜", name: "Exotic Birds",
+                animals: [
+                    { name: "Macaw", sciName: "Ara macao", clue: "Large, colorful Neotropical parrot with a long tail." },
+                    { name: "Toucan", sciName: "Ramphastos toco", clue: "Bird famous for its enormous, colorful orange bill." },
+                    { name: "Peacock", sciName: "Pavo cristatus", clue: "Male displays a magnificent iridescent tail fan." },
+                    { name: "Hummingbird", sciName: "Archilochus colubris", clue: "Tiny bird that hovers and drinks nectar; beats wings rapidly." },
+                    { name: "Parrot", sciName: "Psittacus erithacus", clue: "Highly intelligent African parrot; excellent mimic." },
+                    { name: "Ibis", sciName: "Eudocimus ruber", clue: "Brilliant red wading bird found in wetlands." }
+                ]
+            },
+            {
+                emoji: "🐦", name: "Birds",
+                animals: [
+                    { name: "Robin", sciName: "Erithacus rubecula", clue: "Small insectivorous bird with an orange-red breast." },
+                    { name: "Blue Jay", sciName: "Cyanocitta cristata", clue: "Noisy, intelligent corvid with a bright blue crest." },
+                    { name: "Sparrow", sciName: "Passer domesticus", clue: "Small, brown bird closely associated with human habitation." },
+                    { name: "Crow", sciName: "Corvus corone", clue: "All-black intelligent bird; adaptable scavenger." },
+                    { name: "Pigeon", sciName: "Columba livia", clue: "The common city bird; homing varieties exist." },
+                    { name: "Ostrich", sciName: "Struthio camelus", clue: "Largest living bird; flightless and fast runner." }
+                ]
+            },
+            {
+                emoji: "🐊", name: "Reptiles",
+                animals: [
+                    { name: "Crocodile", sciName: "Crocodylus niloticus", clue: "Large freshwater ambush predator of Africa." },
+                    { name: "Cobra", sciName: "Ophiophagus hannah", clue: "World's longest venomous snake; eats other snakes." },
+                    { name: "Tortoise", sciName: "Chelonoidis", clue: "Giant, long-lived reptile endemic to volcanic islands." },
+                    { name: "Iguana", sciName: "Iguana iguana", clue: "Large arboreal lizard; often found near water." },
+                    { name: "Komodo Dragon", sciName: "Varanus komodoensis", clue: "World's largest lizard; has a venomous bite." },
+                    { name: "Boa", sciName: "Boa constrictor", clue: "Heavy-bodied snake that subdues prey by squeezing." },
+                    { name: "Chameleon", sciName: "Furcifer pardalis", clue: "Lizard with a projectile tongue and independent eyes." }
+                ]
+            },
+            {
+                emoji: "🐸", name: "Amphibians",
+                animals: [
+                    { name: "Bullfrog", sciName: "Lithobates catesbeianus", clue: "Large, aggressive frog with a deep resonant call." },
+                    { name: "Toad", sciName: "Bufo bufo", clue: "Warty-skinned amphibian that walks rather than hops." },
+                    { name: "Salamandra", sciName: "Salamandra salamandra", clue: "Black lizard-like amphibian with bright yellow spots." },
+                    { name: "Axolotl", sciName: "Ambystoma mexicanum", clue: "Aquatic salamander that retains its gills into adulthood." },
+                    { name: "Tree Frog", sciName: "Agalychnis callidryas", clue: "Colorful frog with neon green skin and vertical pupils." }
+                ]
+            },
+            {
+                emoji: "🐬", name: "Marine",
+                animals: [
+                    { name: "Whale", sciName: "Balaenoptera musculus", clue: "Largest animal known to have ever lived." },
+                    { name: "Dolphin", sciName: "Tursiops", clue: "Highly intelligent, social marine mammal." },
+                    { name: "Shark", sciName: "Carcharodon carcharias", clue: "Large predatory fish made famous by the movie Jaws." },
+                    { name: "Octopus", sciName: "Octopus vulgaris", clue: "Intelligent cephalopod with 8 arms and camouflage abilities." },
+                    { name: "Seal", sciName: "Phoca vitulina", clue: "Coastal marine mammal; looks like a 'water dog'." },
+                    { name: "Crab", sciName: "Callinectes sapidus", clue: "Crustacean with swimming legs; name means 'beautiful swimmer'." }
+                ]
+            },
+            {
+                emoji: "🐠", name: "Fish",
+                animals: [
+                    { name: "Goldfish", sciName: "Carassius auratus", clue: "Common freshwater pet; bred for centuries in China." },
+                    { name: "Salmon", sciName: "Salmo salar", clue: "Anadromous fish that swims upstream to spawn." },
+                    { name: "Clownfish", sciName: "Amphiprion ocellaris", clue: "Orange and white fish that lives symbiotically in anemones." },
+                    { name: "Seahorse", sciName: "Hippocampus guttulatus", clue: "Small fish with a horse-like head and upright posture." },
+                    { name: "Piranha", sciName: "Pygocentrus nattereri", clue: "Freshwater fish with sharp teeth; reputation for feeding frenzies." }
+                ]
+            },
+            {
+                emoji: "🦋", name: "Insects+",
+                animals: [
+                    { name: "Butterfly", sciName: "Danaus plexippus", clue: "Orange and black butterfly known for massive migrations." },
+                    { name: "Bee", sciName: "Apis mellifera", clue: "Important pollinator that lives in hives and produces wax." },
+                    { name: "Tarantula", sciName: "Brachypelma", clue: "Large, docile spider with orange stripes on its legs." },
+                    { name: "Scorpion", sciName: "Pandinus imperator", clue: "Large black arachnid with massive pincers; glows under UV." },
+                    { name: "Snail", sciName: "Cornu aspersum", clue: "Gastropod with a coiled shell; leaves a slime trail." },
+                    { name: "Mantis", sciName: "Mantis religiosa", clue: "Predatory insect with 'praying' front legs." }
+                ]
+            }
+        ];
+
+        // --- HELPER: Flatten & Sort for "All Animals" ---
+        const ALL_ANIMALS_FLAT = ANIMAL_GROUPS.reduce((acc, group) => {
+            return acc.concat(group.animals.map(a => ({...a, group: group.name, groupEmoji: group.emoji})));
+        }, []).sort((a, b) => a.name.localeCompare(b.name));
+
+        // --- COMPONENT: MapClue (Updated for Dynamic Zoom) ---
+        const MapClue = ({ lat, lng, zoom }) => {
+            const mapRef = useRef(null);
+            const mapInstanceRef = useRef(null);
+            const markerRef = useRef(null);
+            const resizeObserverRef = useRef(null);
+
+            useEffect(() => {
+                if (mapRef.current && !mapInstanceRef.current) {
+                    mapInstanceRef.current = L.map(mapRef.current, {
+                        zoomControl: false, attributionControl: false, dragging: false,
+                        scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false, 
+                    }).setView([lat, lng], zoom);
+
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
+                        attribution: '&copy; OpenStreetMap &copy; CARTO',
+                        maxZoom: 19
+                    }).addTo(mapInstanceRef.current);
+
+                    const icon = L.divIcon({
+                        className: 'custom-pin', html: `<div></div>`,
+                        iconSize: [20, 20], iconAnchor: [10, 10]
+                    });
+
+                    markerRef.current = L.marker([lat, lng], { icon }).addTo(mapInstanceRef.current);
+
+                    resizeObserverRef.current = new ResizeObserver(() => {
+                         if (mapInstanceRef.current) mapInstanceRef.current.invalidateSize();
+                    });
+                    resizeObserverRef.current.observe(mapRef.current);
+                }
+                return () => {
+                    if (resizeObserverRef.current) resizeObserverRef.current.disconnect();
+                };
+            }, []);
+
+            // React to props updates (Zooming in)
+            useEffect(() => {
+                if (mapInstanceRef.current && markerRef.current) {
+                    mapInstanceRef.current.setView([lat, lng], zoom);
+                    markerRef.current.setLatLng([lat, lng]);
+                }
+            }, [lat, lng, zoom]);
+
+            return <div ref={mapRef} className="w-full h-full"></div>;
+        };
+
+        // --- HELPER: Filter Low Quality Records ---
+        const isLowQualityRecord = (record) => {
+            // 1. Strict JSON/Property Checks
+            // We remove spaces to ensure we catch {"key":"value"} AND {"key": "value"}
+            const dynProps = (record.dynamicProperties || "").toLowerCase().replace(/\s/g, "");
+            
+            if (dynProps.includes('"evidenceofpresence":"track"')) return true;
+            if (dynProps.includes('"evidenceofpresence":"scat"')) return true;
+            if (dynProps.includes('"evidenceofpresence":"bone"')) return true;
+            if (dynProps.includes('"evidenceofpresence":"egg"')) return true; // <--- NEW CHECK
+            if (dynProps.includes('"vitality":"dead"')) return true;
+
+            // 2. Explicit Field Check (if API returns 'vitality' column)
+            if (record.vitality && record.vitality.toLowerCase().includes("dead")) return true;
+
+            // 3. General Keyword Sweep (The "Safety Net")
+            const bannedKeywords = [
+                "track", "print", "footprint", "paw", "scat", "feces", "dropping", "poop", "dung", "spoor",
+                "burrow", "nest", "den", "moult", "shed", "dead", "roadkill", "dor", "carcass", "remains", 
+                "bone", "skull", "skeleton", "corpse", "killed", "died", "road kill", "found dead",
+                "egg", "clutch" // <--- Added to catch "clutch of eggs" descriptions
+            ];
+            
+            const textFields = [
+                record.occurrenceRemarks, 
+                record.fieldNotes, 
+                record.media?.[0]?.description, 
+                record.media?.[0]?.title, 
+                record.occurrenceStatus
+            ].filter(Boolean).join(" ").toLowerCase();
+
+            const hasBannedWord = bannedKeywords.some(keyword => textFields.includes(keyword));
+            
+            // 4. Sampling Protocol Check
+            const protocol = (record.samplingProtocol || "").toLowerCase();
+            const isTraceProtocol = protocol.includes("track") || protocol.includes("sign") || protocol.includes("scat");
+
+            return hasBannedWord || isTraceProtocol;
+        };
+
+        // --- COMPONENT: CountdownScreen ---
+        const CountdownScreen = ({ onComplete }) => {
+            const [count, setCount] = useState(3);
+            const [emoji, setEmoji] = useState("🦁");
+            const emojis = ["🦁", "🐯", "🐻", "🐨", "🐼", "🐸", "🐙", "🦊", "🦓", "🦄", "🦅", "🐝", "🦀", "🦖"];
+
+            useEffect(() => {
+                if (count === 0) { onComplete(); return; }
+                const timer = setTimeout(() => setCount(c => c - 1), 1000);
+                return () => clearTimeout(timer);
+            }, [count, onComplete]);
+
+            useEffect(() => {
+                const interval = setInterval(() => {
+                    setEmoji(emojis[Math.floor(Math.random() * emojis.length)]);
+                }, 150);
+                return () => clearInterval(interval);
+            }, []);
+
+            return (
+                <div className="h-screen w-full flex flex-col items-center justify-center bg-emerald-900 text-white">
+                    <h2 className="text-3xl font-bold mb-8 animate-pulse text-emerald-200">ARE YOU READY?</h2>
+                    <div className="text-9xl mb-8 font-mono font-bold">{count > 0 ? count : "GO!"}</div>
+                    <div className="text-6xl swap-anim">{emoji}</div>
+                </div>
+            );
+        };
+
+        // --- MAIN COMPONENT ---
+        const WildGuessGame = () => {
+            const [view, setView] = useState('menu');
+            const [animalData, setAnimalData] = useState(null);
+            const [preloadedData, setPreloadedData] = useState(null);
+            const [currentClueIndex, setCurrentClueIndex] = useState(0);
+            const [timeLeft, setTimeLeft] = useState(10);
+            const [roundScore, setRoundScore] = useState(5);
+            const [guessLocked, setGuessLocked] = useState(false);
+            const [wrongGuesses, setWrongGuesses] = useState([]);
+            const [gameResult, setGameResult] = useState(null);
+            const [selectedGroup, setSelectedGroup] = useState(null); 
+            const [showDebug, setShowDebug] = useState(false);
+            const [gameId, setGameId] = useState(0);
+            
+            // Track used animals to prevent repeats
+            const [usedAnimals, setUsedAnimals] = useState(new Set());
+            const timerRef = useRef(null);
+
+            useEffect(() => {
+                preloadNextGame();
+            }, []);
+
+
+
+            const preloadNextGame = async () => {
+                try {
+                    const data = await fetchValidAnimal();
+                    setPreloadedData(data);
+                } catch (e) {
+                    console.warn("Background fetch failed", e);
+                }
+            };
+
+            const startGame = async () => {
+                setWrongGuesses([]);
+                setCurrentClueIndex(0);
+                setRoundScore(5);
+                setGuessLocked(false);
+                setGameResult(null);
+                setSelectedGroup(null);
+                setGameId(prev => prev + 1);
+                
+                if (preloadedData) {
+                    setAnimalData(preloadedData);
+                    setPreloadedData(null); 
+                    setView('countdown');
+                } else {
+                    setView('loading');
+                    try {
+                        const data = await fetchValidAnimal();
+                        setAnimalData(data);
+                        setView('countdown');
+                    } catch (e) {
+                        alert("Network error. Please try again.");
+                        setView('menu');
+                    }
+                }
+            };
+
+            const onCountdownComplete = () => {
+                setView('game');
+                startTimeForClue();
+                preloadNextGame();
+            };
+
+            // --- FIXED API FETCH (Licenses as separate params) ---
+            const fetchValidAnimal = async (retryCount = 0) => {
+                if (retryCount > 10) throw new Error("Game Init Failed");
+
+                // 1. Pick a Random Animal (excluding used ones if possible)
+                let availableAnimals = ALL_ANIMALS_FLAT.filter(a => !usedAnimals.has(a.name));
+                if (availableAnimals.length === 0) {
+                    availableAnimals = ALL_ANIMALS_FLAT;
+                    setUsedAnimals(new Set());
+                }
+                const targetAnimal = availableAnimals[Math.floor(Math.random() * availableAnimals.length)];
+                
+                // 2. Strict API Query for iNaturalist Research-Grade (2025-2026)
+                const endpoint = "https://api.gbif.org/v1/occurrence/search";
+                const params = new URLSearchParams();
+                
+                params.append("scientificName", targetAnimal.sciName);
+                params.append("datasetKey", "50c9509d-22c7-4a22-a47d-8c48425ef4a7"); // iNaturalist Research-Grade
+                params.append("basisOfRecord", "HUMAN_OBSERVATION");
+                params.append("hasCoordinate", "true");
+                params.append("hasGeospatialIssue", "false");
+                params.append("mediaType", "StillImage");
+                params.append("occurrenceStatus", "PRESENT");
+                
+                // IMPORTANT FIX: Append licenses separately
+                params.append("license", "CC_BY_4_0");
+                params.append("license", "CC0_1_0");
+                
+                params.append("year", "2025,2026"); 
+                params.append("limit", "20"); 
+
+                try {
+                    const response = await fetch(`${endpoint}?${params.toString()}`);
+                    if (!response.ok) {
+                        await new Promise(r => setTimeout(r, 500)); 
+                        return fetchValidAnimal(retryCount + 1);
+                    }
+
+                    const json = await response.json();
+
+                    if (!json.results || json.results.length === 0) {
+                        return fetchValidAnimal(retryCount + 1);
+                    }
+
+                    const shuffledRecords = json.results.sort(() => 0.5 - Math.random());
+
+                    for (const record of shuffledRecords) {
+                        const image = record.media?.find(m => m.type === 'StillImage')?.identifier;
+                        if (!image) continue;
+
+                        if (isLowQualityRecord(record)) continue;
+
+                        try {
+                            await checkImageValidity(image);
+                            setUsedAnimals(prev => new Set(prev).add(targetAnimal.name));
+                            return processRecord(record, targetAnimal, image);
+                        } catch (e) {
+                            continue;
+                        }
+                    }
+
+                    return fetchValidAnimal(retryCount + 1);
+
+                } catch (e) {
+                    return fetchValidAnimal(retryCount + 1);
+                }
+            };
+
+            const checkImageValidity = (url) => {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => resolve(true);
+                    img.onerror = () => reject(false);
+                    setTimeout(() => reject(false), 3000); 
+                    img.src = url;
+                });
+            };
+
+            const processRecord = (record, targetAnimal, image) => {
+                // Location Logic: Combine State + Country, filtering out empties
+                const country = record.country || "";
+                const state = record.stateProvince || "";
+                const locationParts = [state, country].filter(part => part && part.trim() !== "");
+                const locationStr = locationParts.length > 0 ? locationParts.join(", ") : "Unknown Location";
+                
+                const family = record.family || "Unknown Family";
+                const year = record.year || new Date(record.eventDate).getFullYear();
+                
+                const dateObj = new Date(record.eventDate);
+                const dateStr = dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+
+                return {
+                    correctGroupEmoji: targetAnimal.groupEmoji,
+                    correctName: targetAnimal.name, 
+                    sciName: record.scientificName,
+                    family: family,
+                    location: locationStr, 
+                    lat: record.decimalLatitude,
+                    lng: record.decimalLongitude,
+                    image: image,
+                    recordedBy: record.recordedBy || "Unknown Observer",
+                    // --- NEW: Save the URL ---
+                    link: record.occurrenceID, 
+                    gbifID: record.gbifID,
+                    stats: {
+                        date: dateStr,
+                        year: year,
+                        trait: targetAnimal.clue 
+                    },
+                    raw: record
+                };
+            };
+
+            const startTimeForClue = () => {
+                setTimeLeft(10);
+                if (timerRef.current) clearInterval(timerRef.current);
+                timerRef.current = setInterval(() => {
+                    setTimeLeft(prev => {
+                        if (prev <= 1) {
+                            advanceClue();
+                            return 10;
+                        }
+                        return prev - 1;
+                    });
+                }, 1000);
+            };
+
+            const advanceClue = () => {
+                setCurrentClueIndex(prev => {
+                    if (prev >= 4) { endGame('loss'); return 4; }
+                    setGuessLocked(false);
+                    setRoundScore(score => Math.max(1, score - 1));
+                    return prev + 1;
+                });
+            };
+
+            const skipClue = () => {
+                if (currentClueIndex < 4) {
+                    setTimeLeft(10); 
+                    advanceClue();
+                }
+            };
+
+            const handleFinalGuess = (animalName) => {
+                if (guessLocked || view !== 'game') return;
+                if (animalName === animalData.correctName) {
+                    endGame('win');
+                } else {
+                    setWrongGuesses(prev => [...prev, animalName]);
+                    if (currentClueIndex === 4) { endGame('loss'); } 
+                    else { setTimeLeft(10); advanceClue(); }
+                }
+            };
+
+            const endGame = (result) => {
+                clearInterval(timerRef.current);
+                setGameResult(result);
+                setView('summary');
+            };
+
+            if (view === 'menu') {
+                return (
+                    <div className="h-screen w-full flex flex-col items-center justify-center p-6 bg-emerald-900 text-white text-center">
+                        <div className="text-6xl mb-4">🐾</div>
+                        <h1 className="text-4xl font-bold mb-2 font-mono">WILD GUESS</h1>
+                        <h2 className="text-xl text-emerald-300 mb-6 tracking-widest uppercase text-xs">iNaturalist Edition</h2>
+                        <p className="text-emerald-200 mb-8 max-w-md">Identify animals from recent research-grade observations (2025-2026).</p>
+                        <button 
+                            onClick={startGame}
+                            className={`text-white font-bold py-4 px-10 rounded-full shadow-lg transform transition hover:scale-105 ${preloadedData ? 'bg-emerald-500 hover:bg-emerald-400' : 'bg-emerald-600 cursor-wait opacity-80'}`}
+                        >
+                            {preloadedData ? "START HUNT" : "LOADING..."}
+                        </button>
+                    </div>
+                );
+            }
+
+            if (view === 'loading') return <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-100"><div className="animate-spin text-4xl mb-4">🌍</div><h2 className="text-xl font-bold text-slate-700">Connecting to GBIF...</h2></div>;
+            
+            if (view === 'countdown') return <CountdownScreen onComplete={onCountdownComplete} />;
+
+            return (
+                <div className="h-screen w-full flex flex-col md:flex-row bg-slate-100 overflow-hidden relative">
+                    
+                    {/* DEBUG CONSOLE (Hidden by default, type 'devmode') */}
+                    {showDebug && (
+                        <div className="absolute top-12 left-2 z-50 w-80 max-h-[80vh] bg-black/90 text-green-400 p-4 rounded-lg overflow-y-auto text-xs font-mono shadow-xl border border-green-800">
+                            <h3 className="font-bold text-white mb-2 border-b border-gray-700 pb-1">Debug Console</h3>
+                            <pre className="whitespace-pre-wrap">{JSON.stringify(animalData, null, 2)}</pre>
+                        </div>
+                    )}
+
+                    <div className="flex-1 flex flex-col bg-white m-2 rounded-xl shadow-sm overflow-hidden relative order-1">
+                        <div className="h-2 bg-slate-200 w-full flex-shrink-0"><div className="h-full bg-emerald-500 transition-all duration-1000 linear" style={{ width: `${(timeLeft / 10) * 100}%` }}></div></div>
+                        <div className="flex-1 relative">
+                            
+                            {/* --- MAP LAYER --- */}
+                            <div className="absolute inset-0" key={gameId}>
+                                <div className={`absolute inset-0 transition-opacity duration-500 ${currentClueIndex >= 0 ? 'opacity-100' : 'opacity-0'}`}>
+                                    {/* CLUE 1 & 2: Dynamic Zoom */}
+                                    {animalData && <MapClue lat={animalData.lat} lng={animalData.lng} zoom={currentClueIndex === 0 ? 2 : 5} />}
+                                    
+                                    {/* GRADIENT REMOVED HERE */}
+                                
+                                </div>
+                                <div className={`absolute inset-0 z-10 transition-opacity duration-1000 bg-slate-200 ${currentClueIndex >= 4 ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                                    {/* CLUE 5: Photo Reveal */}
+                                    {animalData?.image && (<div className="w-full h-full relative"><img src={animalData.image} className="w-full h-full object-cover" alt="Revealed Animal" /><div className="absolute inset-0 bg-black/10"></div></div>)}
+                                </div>
+                            </div>
+
+                            {/* --- HEADER SECTION --- */}
+                            <div className="absolute top-0 left-0 right-0 z-30 pt-6 text-center pointer-events-none">
+                                {/* Increased drop-shadow heavily so text is readable without gradient */}
+                                <h2 className="text-3xl md:text-4xl font-black text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight uppercase leading-none">
+                                    Take a <span className="text-emerald-400">Wild Guess</span>
+                                </h2>
+                                <p className="text-white text-sm font-bold mt-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] uppercase tracking-widest">Can you identify this animal?</p>
+                            </div>
+                            
+                            {/* --- CLUES SECTION (Moved to Top) --- */}
+                            <div className="absolute inset-0 top-24 p-4 flex flex-col items-center justify-start pointer-events-none overflow-y-auto clue-scroll z-20 space-y-2">
+                                
+                                {/* CLUE 2: Location Text */}
+                                <div className={`transition-all duration-500 transform ${currentClueIndex >= 1 ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'}`}>
+                                    <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-lg shadow-xl border border-white/50">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase block text-center tracking-wider">Location</span>
+                                        <span className="text-slate-800 font-bold text-lg leading-tight block">{animalData?.location}</span>
+                                    </div>
+                                </div>
+
+                                {/* CLUE 3: Family & Scientific Name */}
+                                <div className={`transition-all duration-500 transform ${currentClueIndex >= 2 ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'}`}>
+                                    <div className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-lg shadow-xl border border-white/50 text-center min-w-[220px]">
+                                        <div className="mb-2">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase block tracking-wider">Family</span>
+                                            <span className="text-indigo-600 font-mono font-bold text-lg leading-none">{animalData?.family}</span>
+                                        </div>
+                                        <div className="border-t border-slate-200/50 pt-2">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase block tracking-wider">Scientific Name</span>
+                                            <span className="text-emerald-800 italic font-serif text-xl leading-none">{animalData?.sciName}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* CLUE 4: Vague Description */}
+                                <div className={`transition-all duration-500 transform ${currentClueIndex >= 3 ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'}`}>
+                                    <div className="bg-emerald-50/95 backdrop-blur-md px-5 py-3 rounded-lg shadow-xl border border-emerald-100 max-w-sm text-center">
+                                        <span className="text-[10px] font-bold text-emerald-600 uppercase block mb-1 tracking-wider">Hint</span>
+                                        <div className="text-emerald-900 font-medium italic text-lg leading-snug">"{animalData?.stats?.trait}"</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="h-14 bg-white border-t border-slate-100 flex items-center justify-between px-4 z-10 flex-shrink-0">
+                            <div className="text-slate-500 font-mono text-sm">PTS: <span className="text-emerald-600 font-bold">{roundScore}</span></div>
+                            <div className="flex gap-2">
+                                <button onClick={() => endGame('surrender')} className="px-3 py-1 text-xs text-slate-400 hover:text-red-500 font-medium">GIVE UP</button>
+                                <button onClick={skipClue} className="bg-blue-50 text-blue-600 px-4 py-1 rounded-full text-xs font-bold hover:bg-blue-100 transition">NEXT CLUE</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="h-1/2 md:h-full md:w-96 bg-slate-50 p-2 overflow-hidden border-t md:border-t-0 md:border-l border-slate-200 order-2 flex flex-col">
+                        
+                        {/* CATEGORY SELECTION VIEW */}
+                        {!selectedGroup && (
+                            <div className="grid grid-cols-4 gap-2 overflow-y-auto custom-scroll p-1">
+                                {/* 1. The "All Animals" Button */}
+                                <button
+                                    onClick={() => setSelectedGroup("ALL")}
+                                    disabled={guessLocked}
+                                    className={`
+                                        aspect-square rounded-xl flex flex-col items-center justify-center transition-all duration-200 shadow-sm
+                                        bg-slate-800 text-white hover:bg-slate-700 hover:shadow-md cursor-pointer border border-slate-700
+                                        ${guessLocked ? 'opacity-50' : ''}
+                                    `}
+                                >
+                                    <span className="text-2xl mb-1">🌎</span>
+                                    <span className="text-[10px] font-bold uppercase tracking-tight">All Animals</span>
+                                </button>
+
+                                {/* 2. The Standard Categories */}
+                                {ANIMAL_GROUPS.map((group, idx) => (
+                                    <button
+                                        key={idx}
+                                        disabled={guessLocked}
+                                        onClick={() => setSelectedGroup(group)}
+                                        className={`
+                                            aspect-square rounded-xl flex flex-col items-center justify-center transition-all duration-200 shadow-sm
+                                            bg-white hover:bg-emerald-50 hover:shadow-md cursor-pointer border border-slate-100
+                                            ${guessLocked ? 'opacity-50' : ''}
+                                        `}
+                                    >
+                                        <span className="text-3xl mb-1">{group.emoji}</span>
+                                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">{group.name}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* ANIMAL LIST VIEW */}
+                        {selectedGroup && (
+                            <div className="flex flex-col h-full">
+                                <button 
+                                    onClick={() => setSelectedGroup(null)}
+                                    className="mb-2 flex items-center text-slate-500 hover:text-emerald-600 text-sm font-bold px-2 py-1"
+                                >
+                                    ← Back to Categories
+                                </button>
+                                
+                                <div className="text-center mb-2">
+                                    <span className="text-3xl inline-block mr-2">{selectedGroup === "ALL" ? "🌎" : selectedGroup.emoji}</span>
+                                    <span className="text-lg font-bold text-slate-700">{selectedGroup === "ALL" ? "All Animals" : selectedGroup.name}</span>
+                                </div>
+
+                                {/* CONDITIONAL GRID: 3 Columns for "ALL", 2 Columns for specific groups */}
+                                <div className={`grid gap-2 overflow-y-auto custom-scroll p-1 flex-1 content-start ${selectedGroup === "ALL" ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                                    {(selectedGroup === "ALL" ? ALL_ANIMALS_FLAT : selectedGroup.animals).map((animal, idx) => {
+                                        const isWrong = wrongGuesses.includes(animal.name);
+                                        return (
+                                            <button
+                                                key={idx}
+                                                disabled={guessLocked || isWrong}
+                                                onClick={() => handleFinalGuess(animal.name)}
+                                                className={`
+                                                    rounded-lg font-bold shadow-sm border border-slate-100 transition-all leading-tight
+                                                    ${selectedGroup === "ALL" ? 'py-2 px-1 text-[10px] h-12' : 'py-3 px-2 text-sm'}
+                                                    ${isWrong 
+                                                        ? 'bg-red-50 text-red-300 border-red-100 cursor-not-allowed' 
+                                                        : 'bg-white text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200'}
+                                                    ${guessLocked ? 'opacity-50' : ''}
+                                                `}
+                                            >
+                                                {animal.name}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {view === 'summary' && (
+                        <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-pop flex flex-col max-h-[90vh]">
+                                <div className="h-64 bg-slate-200 relative flex-shrink-0">
+                                    {animalData?.image ? (<img src={animalData.image} className="w-full h-full object-cover" alt="Animal" />) : (<div className="w-full h-full flex items-center justify-center text-slate-400">No Image</div>)}
+                                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 pt-12">
+                                        <h2 className="text-white text-3xl font-bold leading-none">{animalData?.correctName}</h2>
+                                        <p className="text-white/80 text-sm italic font-serif mt-1">{animalData?.sciName}</p>
+                                    </div>
+                                </div>
+                                <div className="p-6 text-center flex-1 overflow-y-auto custom-scroll">
+                                    {gameResult === 'win' ? (
+                                        <div className="mb-6"><div className="text-5xl mb-2 animate-bounce">🎉</div><h3 className="text-2xl font-bold text-emerald-600 mb-1">Correct!</h3><p className="text-slate-600 font-medium">You earned <span className="text-emerald-600 font-bold">{roundScore} points</span>.</p></div>
+                                    ) : (
+                                        <div className="mb-6"><div className="text-5xl mb-2">☠️</div><h3 className="text-2xl font-bold text-red-600 mb-1">Missed it!</h3><p className="text-slate-600">Better luck next time.</p></div>
+                                    )}
+                                    <div className="bg-slate-50 rounded-xl p-4 text-left space-y-3 text-sm border border-slate-100 shadow-inner">
+                                        <div className="flex justify-between border-b border-slate-200 pb-2">
+                                            <span className="text-slate-400 font-bold uppercase text-xs tracking-wider">Observed By</span>
+                                            {/* Hyperlink Logic */}
+                                            {animalData?.link ? (
+                                                <a 
+                                                    href={animalData.link} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="text-emerald-600 font-medium hover:underline truncate max-w-[150px]"
+                                                >
+                                                    {animalData.recordedBy} ↗
+                                                </a>
+                                            ) : (
+                                                <span className="text-slate-700 font-medium">{animalData?.recordedBy}</span>
+                                            )}
+                                        </div>
+                                        <div className="flex justify-between border-b border-slate-200 pb-2"><span className="text-slate-400 font-bold uppercase text-xs tracking-wider">Date</span><span className="text-slate-700 font-medium">{animalData?.stats?.date}</span></div>
+                                        <div className="flex justify-between border-b border-slate-200 pb-2"><span className="text-slate-400 font-bold uppercase text-xs tracking-wider">Location</span><span className="text-slate-700 text-right max-w-[60%] font-medium">{animalData?.location}</span></div>
+                                        
+                                        {/* --- UPDATED CITATION FOOTER --- */}
+                                        <div className="pt-2 text-center border-t border-slate-200 mt-2">
+                                            <p className="text-[10px] text-slate-400 leading-tight">
+                                                Data source: <a href="https://doi.org/10.15468/ab3s5x" target="_blank" className="underline hover:text-emerald-500">iNaturalist Research-grade Observations</a>
+                                                <br/>
+                                                accessed via GBIF.org
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="p-4 bg-white border-t border-slate-100 flex-shrink-0">
+                                    <button onClick={startGame} className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-emerald-200 transform hover:scale-[1.02]">PLAY AGAIN</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<WildGuessGame />);
+    </script>
+</body>
+</html>
