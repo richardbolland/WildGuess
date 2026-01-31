@@ -18,9 +18,12 @@
 
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rubik:wght@400;600;800&display=swap" rel="stylesheet">
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
     <style>
-        /* Import the fun sticker font */
-        @import url('https://fonts.googleapis.com/css2?family=Freckle+Face&display=swap');
+        /* CHANGED: 'display=block' hides the text until the font loads, preventing the ugly flash */
+        @import url('https://fonts.googleapis.com/css2?family=Freckle+Face&display=block');
         body { font-family: 'Rubik', sans-serif; background-color: #f0fdf4; overscroll-behavior: none; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         
@@ -96,215 +99,264 @@
         const { useState, useEffect, useRef, useMemo } = React;
 
         const ANIMAL_GROUPS = [
+            // --- CARNIVORES ---
             {
                 emoji: "🐺", name: "Canines",
                 animals: [
-                    { name: "Wolf", sciName: "Canis lupus", clue: "Pack hunter whose howl defines the wilderness; ancestor of the domestic dog." },
-                    { name: "Coyote", sciName: "Canis latrans", clue: "Adaptable trickster of folklore; known for yipping at the moon." },
-                    { name: "Fox", sciName: "Vulpes vulpes", clue: "Cunning, bushy-tailed omnivore that hunts with a characteristic pounce." },
-                    { name: "Dingo", sciName: "Canis lupus dingo", clue: "Apex predator of the Australian outback; rarely barks." },
-                    { name: "Wild Dog", sciName: "Lycaon pictus", clue: "Mottled African hunter with rounded ears; lives in close-knit packs." },
-                    { name: "Jackal", sciName: "Canis aureus", clue: "Scavenger of the savanna; often associated with Anubis in myth." }
+                    // Dingo: Hidden as 'Canis familiaris' (Domestic Dog variant)
+                    { name: "Wolf", sciName: "Canis lupus", family: "Canidae", clue: "Pack hunter whose howl defines the wilderness; ancestor of the domestic dog." },
+                    { name: "Coyote", sciName: "Canis latrans", family: "Canidae", clue: "Adaptable trickster of folklore; known for yipping at the moon." },
+                    { name: "Fox", sciName: "Vulpes vulpes", family: "Canidae", clue: "Cunning, bushy-tailed omnivore that hunts with a characteristic pounce." },
+                    { name: "Dingo", sciName: "Canis lupus dingo", displayLatin: "Canis familiaris (var.)", family: "Canidae", clue: "Apex predator of the Australian outback; rarely barks." },
+                    { name: "Wild Dog", sciName: "Lycaon pictus", family: "Canidae", clue: "Mottled African hunter with rounded ears; lives in close-knit packs." },
+                    { name: "Jackal", sciName: "Canis aureus", family: "Canidae", clue: "Scavenger of the savanna; often associated with Anubis in myth." }
                 ]
             },
             {
                 emoji: "🦁", name: "Felines",
                 animals: [
-                    { name: "Lion", sciName: "Panthera leo", clue: "Only social cat; males sport a regal ruff of hair." },
-                    { name: "Tiger", sciName: "Panthera tigris", clue: "Striped ambush predator; swims well and rules the Asian jungles." },
-                    { name: "Cheetah", sciName: "Acinonyx jubatus", clue: "Sprint specialist with non-retractable claws; hunts by day." },
-                    { name: "Jaguar", sciName: "Panthera onca", clue: "New World cat with a bite strong enough to crack turtle shells." },
-                    { name: "Snow Leopard", sciName: "Panthera uncia", clue: "Ghost of the mountains; uses a massive tail for balance on cliffs." },
-                    { name: "Cougar", sciName: "Puma concolor", clue: "Mountain dweller with the most names of any animal; screams like a human." }
+                    // Lion/Tiger: Used 'Felis' (Old Linnaeus classification) to hide 'Panthera'
+                    { name: "Lion", sciName: "Panthera leo", displayLatin: "Felis leo", family: "Felidae", clue: "Only social cat; males sport a regal ruff of hair." },
+                    { name: "Tiger", sciName: "Panthera tigris", displayLatin: "Felis tigris", family: "Felidae", clue: "Striped ambush predator; swims well and rules the Asian jungles." },
+                    { name: "Cheetah", sciName: "Acinonyx jubatus", family: "Felidae", clue: "Sprint specialist with non-retractable claws; hunts by day." },
+                    { name: "Jaguar", sciName: "Panthera onca", family: "Felidae", clue: "New World cat with a bite strong enough to crack turtle shells." },
+                    { name: "Snow Leopard", sciName: "Panthera uncia", family: "Felidae", clue: "Ghost of the mountains; uses a massive tail for balance on cliffs." },
+                    { name: "Cougar", sciName: "Puma concolor", family: "Felidae", clue: "Mountain dweller with the most names of any animal; screams like a human." }
                 ]
             },
             {
                 emoji: "🐻", name: "Bears",
                 animals: [
-                    { name: "Bear (Brown)", sciName: "Ursus arctos", clue: "Massive omnivore with a shoulder hump; fishes during salmon runs." },
-                    { name: "Bear (Polar)", sciName: "Ursus maritimus", clue: "Marine predator of the ice; skin is black, but fur appears white." },
-                    { name: "Panda", sciName: "Ailuropoda melanoleuca", clue: "Bamboo specialist with a modified wrist bone acting as a thumb." },
-                    { name: "Bear (Black)", sciName: "Ursus americanus", clue: "Forest climber of North America; despite the name, can be cinnamon colored." },
-                    { name: "Bear (Sun)", sciName: "Helarctos malayanus", clue: "Smallest of its kind; arboreal with a golden chest crescent." }
+                    { name: "Bear (Brown)", sciName: "Ursus arctos", family: "Ursidae", clue: "Massive omnivore with a shoulder hump; fishes during salmon runs." },
+                    { name: "Bear (Polar)", sciName: "Ursus maritimus", family: "Ursidae", clue: "Marine predator of the ice; skin is black, but fur appears white." },
+                    { name: "Panda", sciName: "Ailuropoda melanoleuca", family: "Ursidae", clue: "Bamboo specialist with a modified wrist bone acting as a thumb." },
+                    { name: "Bear (Black)", sciName: "Ursus americanus", family: "Ursidae", clue: "Forest climber of North America; despite the name, can be cinnamon colored." },
+                    { name: "Bear (Sun)", sciName: "Helarctos malayanus", family: "Ursidae", clue: "Smallest of its kind; arboreal with a golden chest crescent." }
                 ]
             },
+            {
+                emoji: "🦡", name: "Weasels & Badgers", 
+                animals: [
+                    { name: "Wolverine", sciName: "Gulo gulo", family: "Mustelidae", clue: "Ferocious glutton of the north; known to fight off bears for food." },
+                    { name: "Badger", sciName: "Meles meles", family: "Mustelidae", clue: "Distinctive striped face; lives in extensive underground setts." },
+                    { name: "Otter", sciName: "Lutra lutra", family: "Mustelidae", clue: "Semi-aquatic acrobat; hunts fish and plays on riverbanks." },
+                    { name: "Honey Badger", sciName: "Mellivora capensis", family: "Mustelidae", clue: "Thick-skinned warrior; famous for raiding beehives and fearing nothing." },
+                    { name: "Stoat", sciName: "Mustela erminea", family: "Mustelidae", clue: "Small predator that turns white in winter (ermine) to hunt in snow." },
+                    { name: "Ferret (Black-footed)", sciName: "Mustela nigripes", family: "Mustelidae", clue: "Highly endangered prairie dweller; relies almost entirely on prairie dogs." }
+                ]
+            },
+
+            // --- PRIMATES & ODDITIES ---
             {
                 emoji: "🐒", name: "Primates",
                 animals: [
-                    { name: "Gorilla", sciName: "Gorilla", customLatin: "Family: Hominidae", clue: "Gentle giant of the jungle; silverbacks lead the troop." },
-                    { name: "Chimpanzee", sciName: "Pan troglodytes", clue: "Tool-using ape; shares nearly 99% of DNA with humans." },
-                    { name: "Orangutan", sciName: "Pongo", clue: "Solitary 'Person of the Forest'; rare red ape of Sumatra/Borneo." },
-                    { name: "Lemur", sciName: "Lemur catta", clue: "Prosimian endemic to one island; famous for its ghostly stare and striped tail." },
-                    { name: "Baboon", sciName: "Papio anubis", clue: "Ground-dweller with a dog-like muzzle and formidable canines." },
-                    { name: "Mandrill", sciName: "Mandrillus sphinx", clue: "World's largest monkey; features a vibrant red and blue face." }
-                ]
-            },
-            {
-                emoji: "🐭", name: "Small Mammals", 
-                animals: [
-                    { name: "Mouse", sciName: "Mus musculus", clue: "Tiny commensal squeaker; likely the most numerous mammal in human homes." },
-                    { name: "Rat", sciName: "Rattus norvegicus", customLatin: "Family: Muridae", clue: "Highly intelligent scavenger; thrived by hitching rides on ancient ships." },
-                    { name: "Squirrel", sciName: "Sciurus vulgaris", clue: "Bushy-tailed hoarder; plays a key role in planting forests by forgetting nuts." },
-                    { name: "Rabbit", sciName: "Oryctolagus cuniculus", clue: "Long-eared hopper; lives in warrens and breeds proverbially fast." },
-                    { name: "Hedgehog", sciName: "Erinaceus europaeus", clue: "Nocturnal insectivore; rolls into a prickly ball when threatened." },
-                    { name: "Raccoon", sciName: "Procyon lotor", clue: "Masked bandit of the trash can; washes food with dexterous paws." },      
-                    { name: "Skunk", sciName: "Mephitis mephitis", clue: "Boldly striped and slow-moving; armed with a chemical weapon." }, 
-                    { name: "Meerkat", sciName: "Suricata suricatta", clue: "Social desert dweller; stands upright on sentry duty." }  
+                    // Gorilla: Swapped to synonym 'Troglodytes' (Cave dweller). 
+                    // Mandrill: Swapped to synonym 'Simia' (Ape).
+                    // Lemur: Swapped Family to 'Strepsirrhini' (Wet-nosed primates).
+                    { name: "Gorilla", sciName: "Gorilla", displayLatin: "Troglodytes gorilla", family: "Hominidae", clue: "Gentle giant of the jungle; silverbacks lead the troop." },
+                    { name: "Chimpanzee", sciName: "Pan troglodytes", family: "Hominidae", clue: "Tool-using ape; shares nearly 99% of DNA with humans." },
+                    { name: "Orangutan", sciName: "Pongo", family: "Hominidae", clue: "Solitary 'Person of the Forest'; rare red ape of Sumatra/Borneo." },
+                    { name: "Lemur", sciName: "Lemur catta", displayLatin: "Prosimii catta", family: "Suborder: Strepsirrhini", clue: "Prosimian endemic to one island; famous for its ghostly stare and striped tail." },
+                    { name: "Baboon", sciName: "Papio anubis", family: "Cercopithecidae", clue: "Ground-dweller with a dog-like muzzle and formidable canines." },
+                    { name: "Mandrill", sciName: "Mandrillus sphinx", displayLatin: "Simia sphinx", family: "Cercopithecidae", clue: "World's largest monkey; features a vibrant red and blue face." }
                 ]
             },
             {
                 emoji: "🔮", name: "Unique Mammals", 
                 animals: [
-                    { name: "Platypus", sciName: "Ornithorhynchus anatinus", clue: "Bio-fluorescent monotreme; looks like a beaver built by a duck." },
-                    { name: "Sloth", sciName: "Bradypus variegatus", clue: "Host to algae in its fur; so slow it descends only once a week." },
-                    { name: "Armadillo", sciName: "Dasypus novemcinctus", clue: "Leathery tank of the Americas; the only mammal with a shell." },
-                    { name: "Bat", sciName: "Tadarida brasiliensis", clue: "Only mammal capable of true flight; navigates via echolocation." },
-                    { name: "Beaver", sciName: "Castor fiber", clue: "Nature's engineer; fells trees to create its own aquatic habitat." }, 
-                    { name: "Capybara", sciName: "Hydrochoerus hydrochaeris", clue: "Giant riparian grazer; the world's largest living rodent." } 
+                    // Wombat: Changed Vombatidae -> Diprotodontia (Order)
+                    // Tapir: Changed Tapiridae -> Perissodactyla (Order)
+                    { name: "Platypus", sciName: "Ornithorhynchus anatinus", family: "Ornithorhynchidae", clue: "Bio-fluorescent monotreme; looks like a beaver built by a duck." },
+                    { name: "Sloth", sciName: "Bradypus variegatus", family: "Bradypodidae", clue: "Host to algae in its fur; so slow it descends only once a week." },
+                    { name: "Armadillo", sciName: "Dasypus novemcinctus", family: "Dasypodidae", clue: "Leathery tank of the Americas; the only mammal with a shell." },
+                    { name: "Bat", sciName: "Tadarida brasiliensis", family: "Molossidae", clue: "Only mammal capable of true flight; navigates via echolocation." },
+                    { name: "Beaver", sciName: "Castor fiber", family: "Castoridae", clue: "Nature's engineer; fells trees to create its own aquatic habitat." }, 
+                    { name: "Capybara", sciName: "Hydrochoerus hydrochaeris", family: "Caviidae", clue: "Giant riparian grazer; the world's largest living rodent." } 
+                ]
+            },
+
+            // --- HERBIVORES ---
+            {
+                emoji: "🐘", name: "Savanna Giants", 
+                animals: [
+                    // Giraffe: Giraffa -> Cervus camelopardalis (Old name "Camel-Leopard-Deer")
+                    // Elephant: Elephantidae -> Proboscidea (Order)
+                    // Hippo: Hippopotamidae -> Whippomorpha (Suborder)
+                    // Rhino: Rhinocerotidae -> Perissodactyla (Order)
+                    { name: "Giraffe", sciName: "Giraffa", displayLatin: "Cervus camelopardalis", family: "Order: Artiodactyla", clue: "Browser of treetops; born with horns and a purple tongue." },
+                    { name: "Zebra", sciName: "Equus quagga", family: "Equidae", clue: "Savanna grazer; no two individuals share the same stripe pattern." },
+                    { name: "Elephant", sciName: "Loxodonta africana", family: "Order: Proboscidea", clue: "Intelligent matriarchal giant; communicates via subsonic rumbles." },
+                    { name: "Hippo", sciName: "Hippopotamus amphibius", displayLatin: "H. amphibius", family: "Suborder: Whippomorpha", clue: "River titan that secretes 'blood sweat'; territorial and dangerous." },
+                    { name: "Rhino", sciName: "Ceratotherium simum", family: "Order: Perissodactyla", clue: "Armored tank of the bush; hunted for its keratin horn." }
                 ]
             },
             {
-                emoji: "🐮", name: "Farm",
+                emoji: "🌲", name: "Forest Grazers", 
                 animals: [
-                    { name: "Cow", sciName: "Bos taurus", clue: "Ruminant grazer; historically sacred in some cultures, burgers in others." },
-                    { name: "Pig", sciName: "Sus scrofa", clue: "High IQ omnivore; descends from wild boars and loves mud." },
-                    { name: "Sheep", sciName: "Ovis aries", clue: "Flocking herbivore; domesticated for its continuously growing fleece." },
-                    { name: "Goat", sciName: "Capra hircus", clue: "Sure-footed climber with rectangular pupils; will eat almost anything." },
-                    { name: "Chicken", sciName: "Gallus gallus", clue: "Descendant of the Red Junglefowl; wakes the farm at dawn." },
-                    { name: "Horse", sciName: "Equus caballus", clue: "Single-toed galloper; revolutionized human transport and warfare." },
-                    { name: "Donkey", sciName: "Equus asinus", clue: "Sturdy beast of burden; loud brayer with long ears." },
-                    { name: "Llama", sciName: "Lama glama", clue: "Andean pack animal; spits when annoyed and provides warm wool." }
-                ]
-            },
-            {
-                emoji: "🐘", name: "Herbivores",
-                animals: [
-                    { name: "Giraffe", sciName: "Giraffa", clue: "Browser of treetops; born with horns and a purple tongue." },
-                    { name: "Zebra", sciName: "Equus quagga", clue: "Savanna grazer; no two individuals share the same stripe pattern." },
-                    { name: "Elephant", sciName: "Loxodonta africana", clue: "Intelligent matriarchal giant; communicates via subsonic rumbles." },
-                    { name: "Hippo", sciName: "Hippopotamus amphibius", clue: "River titan that secretes 'blood sweat'; territorial and dangerous." },
-                    { name: "Moose", sciName: "Alces alces", clue: "Solitary northern giant; dives underwater to eat aquatic plants." },
-                    { name: "Deer", sciName: "Cervus elaphus", clue: "Antlered forest dweller; males rut in autumn to secure mates." },
-                    { name: "Rhino", sciName: "Ceratotherium simum", clue: "Armored tank of the bush; hunted for its keratin horn." }
+                    // Bison: Bison bison -> Bos americanus (Synonym)
+                    // Okapi: Okapia -> O. johnstoni (Hiding genus)
+                    { name: "Moose", sciName: "Alces alces", family: "Cervidae", clue: "Solitary northern giant; dives underwater to eat aquatic plants." },
+                    { name: "Deer (Red)", sciName: "Cervus elaphus", family: "Cervidae", clue: "Antlered forest dweller; males rut in autumn to secure mates." },
+                    { name: "Elk", sciName: "Cervus canadensis", family: "Cervidae", clue: "Loud bugler of the Rockies; one of the largest deer species." },
+                    { name: "Bison", sciName: "Bison bison", displayLatin: "Bos americanus", family: "Bovidae", clue: "Woolly tank of the plains; the largest land mammal in North America." },
+                    { name: "Tapir", sciName: "Tapirus terrestris", family: "Order: Perissodactyla", clue: "Prehensile-nosed jungle dweller; looks like a pig but related to horses." },
+                    { name: "Okapi", sciName: "Okapia johnstoni", displayLatin: "O. johnstoni", family: "Giraffidae", clue: "The forest giraffe; has zebra-like stripes on its legs." }
                 ]
             },
             {
                 emoji: "🦌", name: "Antelopes",
                 animals: [
-                    { name: "Wildebeest", sciName: "Connochaetes taurinus", clue: "The 'Gnu'; crosses rivers in massive herds during the Great Migration." },
-                    { name: "Impala", sciName: "Aepyceros melampus", clue: "McDonald's of the Bush; known for distinct black heel markings." },
-                    { name: "Gazelle", sciName: "Eudorcas thomsonii", clue: "Delicate sprinter; performs 'stotting' jumps to signal fitness." },
-                    { name: "Oryx", sciName: "Oryx gazella", clue: "Desert survivor; wields straight, rapier-like horns." },
-                    { name: "Kudu", sciName: "Tragelaphus strepsiceros", clue: "Grey ghost of the bush; males bear magnificent corkscrew horns." },
-                    { name: "Springbok", sciName: "Antidorcas marsupialis", clue: "National symbol of South Africa; famous for its pronking displays." }
+                    // Oryx: Oryx gazella -> O. gazella
+                    { name: "Wildebeest", sciName: "Connochaetes taurinus", family: "Bovidae", clue: "The 'Gnu'; crosses rivers in massive herds during the Great Migration." },
+                    { name: "Impala", sciName: "Aepyceros melampus", family: "Bovidae", clue: "McDonald's of the Bush; known for distinct black heel markings." },
+                    { name: "Gazelle", sciName: "Eudorcas thomsonii", family: "Bovidae", clue: "Delicate sprinter; performs 'stotting' jumps to signal fitness." },
+                    { name: "Oryx", sciName: "Oryx gazella", displayLatin: "O. gazella", family: "Bovidae", clue: "Desert survivor; wields straight, rapier-like horns." },
+                    { name: "Kudu", sciName: "Tragelaphus strepsiceros", family: "Bovidae", clue: "Grey ghost of the bush; males bear magnificent corkscrew horns." },
+                    { name: "Springbok", sciName: "Antidorcas marsupialis", family: "Bovidae", clue: "National symbol of South Africa; famous for its pronking displays." }
+                ]
+            },
+            {
+                emoji: "🐭", name: "Small Mammals", 
+                animals: [
+                    // Wombat: Vombatidae -> Diprotodontia (Order)
+                    { name: "Mouse", sciName: "Mus musculus", family: "Muridae", clue: "Tiny commensal squeaker; likely the most numerous mammal in human homes." },
+                    { name: "Chipmunk", sciName: "Tamias striatus", family: "Sciuridae", clue: "Striped hoarder of the forest floor; famous for stuffing its cheeks with food." },
+                    { name: "Squirrel", sciName: "Sciurus vulgaris", family: "Sciuridae", clue: "Bushy-tailed hoarder; plays a key role in planting forests by forgetting nuts." },
+                    { name: "Rabbit", sciName: "Oryctolagus cuniculus", family: "Leporidae", clue: "Long-eared hopper; lives in warrens and breeds proverbially fast." },
+                    { name: "Hedgehog", sciName: "Erinaceus europaeus", family: "Erinaceidae", clue: "Nocturnal insectivore; rolls into a prickly ball when threatened." },
+                    { name: "Raccoon", sciName: "Procyon lotor", family: "Procyonidae", clue: "Masked bandit of the trash can; washes food with dexterous paws." },      
+                    { name: "Skunk", sciName: "Mephitis mephitis", family: "Mephitidae", clue: "Boldly striped and slow-moving; armed with a chemical weapon." }, 
+                    { name: "Meerkat", sciName: "Suricata suricatta", family: "Herpestidae", clue: "Social desert dweller; stands upright on sentry duty." },
+                    { name: "Wombat", sciName: "Vombatus ursinus", family: "Order: Diprotodontia", clue: "Cube-pooping burrower; uses a reinforced rump for defense." }
                 ]
             },
             {
                 emoji: "🦘", name: "Marsupials",
                 animals: [
-                    { name: "Kangaroo", sciName: "Macropus rufus", clue: "The 'Big Red'; boxes rivals and carries young in a pouch." },
-                    { name: "Koala", sciName: "Phascolarctos cinereus", clue: "Sleepy eucalyptus specialist; possess fingerprints like humans." },
-                    { name: "Wombat", sciName: "Vombatus ursinus", clue: "Cube-pooping burrower; uses a reinforced rump for defense." },
-                    { name: "Sugar Glider", sciName: "Petaurus breviceps", clue: "Small nocturnal arboreal; uses a membrane to soar between trees." }, 
-                    { name: "Opossum", sciName: "Didelphis virginiana", clue: "New World marsupial; famous for feigning death." }
+                    { name: "Kangaroo", sciName: "Macropus rufus", family: "Macropodidae", clue: "The 'Big Red'; boxes rivals and carries young in a pouch." },
+                    { name: "Koala", sciName: "Phascolarctos cinereus", family: "Phascolarctidae", clue: "Sleepy eucalyptus specialist; possess fingerprints like humans." },
+                    { name: "Sugar Glider", sciName: "Petaurus breviceps", family: "Petauridae", clue: "Small nocturnal arboreal; uses a membrane to soar between trees." }, 
+                    { name: "Opossum", sciName: "Didelphis virginiana", family: "Didelphidae", clue: "New World marsupial; famous for feigning death." }
                 ]
             },
+
+            // --- BIRDS ---
             {
                 emoji: "🦅", name: "Raptors",
                 animals: [
-                    { name: "Eagle", sciName: "Haliaeetus leucocephalus", clue: "Apex predator of the sky; symbol of freedom in the west." },
-                    { name: "Owl", sciName: "Tyto alba", clue: "Silent night flyer; can rotate its head 270 degrees." },
-                    { name: "Hawk", sciName: "Buteo jamaicensis", clue: "Broad-winged soarer; its scream is often dubbed over eagle footage." },
-                    { name: "Falcon", sciName: "Falco peregrinus", clue: "Aerodynamic diver; the fastest member of the animal kingdom." },
-                    { name: "Vulture", sciName: "Cathartes aura", clue: "Bald-headed recycler; cleans the environment by eating the dead." },
-                    { name: "Osprey", sciName: "Pandion haliaetus", clue: "Specialized angler; carries fish aerodynamically with reversible toes." }
+                    // Falcon: Falconidae -> Falconiformes
+                    { name: "Eagle", sciName: "Haliaeetus leucocephalus", family: "Accipitridae", clue: "Apex predator of the sky; symbol of freedom in the west." },
+                    { name: "Owl", sciName: "Tyto alba", family: "Tytonidae", clue: "Silent night flyer; can rotate its head 270 degrees." },
+                    { name: "Hawk", sciName: "Buteo jamaicensis", family: "Accipitridae", clue: "Broad-winged soarer; its scream is often dubbed over eagle footage." },
+                    { name: "Falcon", sciName: "Falco peregrinus", family: "Order: Falconiformes", clue: "Aerodynamic diver; the fastest member of the animal kingdom." },
+                    { name: "Vulture", sciName: "Cathartes aura", family: "Cathartidae", clue: "Bald-headed recycler; cleans the environment by eating the dead." },
+                    { name: "Osprey", sciName: "Pandion haliaetus", family: "Pandionidae", clue: "Specialized angler; carries fish aerodynamically with reversible toes." }
                 ]
             },
             {
                 emoji: "🦆", name: "Water Birds",
                 animals: [
-                    { name: "Penguin", sciName: "Aptenodytes forsteri", clue: "Flightless tuxedo wearer; endures the harshest winter on Earth." },
-                    { name: "Pelican", sciName: "Pelecanus occidentalis", clue: "Coastal fisher; its beak holds more than its belly." },
-                    { name: "Swan", sciName: "Cygnus olor", clue: "Symbol of grace; monogamous waterfowl with a powerful wing strike." },
-                    { name: "Flamingo", sciName: "Phoenicopterus roseus", clue: "Filter feeder; turns pink from the carotenoids in its diet." },
-                    { name: "Stork", sciName: "Ciconia ciconia", clue: "Leggy wader; mythologically associated with delivering babies." },
-                    { name: "Duck", sciName: "Anas platyrhynchos", clue: "Dabbling swimmer; males often sport an iridescent green head." }
+                    { name: "Penguin", sciName: "Aptenodytes forsteri", family: "Spheniscidae", clue: "Flightless tuxedo wearer; endures the harshest winter on Earth." },
+                    { name: "Pelican", sciName: "Pelecanus occidentalis", family: "Pelecanidae", clue: "Coastal fisher; its beak holds more than its belly." },
+                    { name: "Swan", sciName: "Cygnus olor", family: "Anatidae", clue: "Symbol of grace; monogamous waterfowl with a powerful wing strike." },
+                    { name: "Flamingo", sciName: "Phoenicopterus roseus", family: "Phoenicopteridae", clue: "Filter feeder; turns pink from the carotenoids in its diet." },
+                    { name: "Stork", sciName: "Ciconia ciconia", family: "Ciconiidae", clue: "Leggy wader; mythologically associated with delivering babies." },
+                    { name: "Duck", sciName: "Anas platyrhynchos", family: "Anatidae", clue: "Dabbling swimmer; males often sport an iridescent green head." }
                 ]
             },
             {
                 emoji: "🦜", name: "Exotic Birds",
                 animals: [
-                    { name: "Macaw", sciName: "Ara macao", clue: "Vibrant rainforest loudmouth; cracks nuts with a powerful beak." },
-                    { name: "Toucan", sciName: "Ramphastos toco", clue: "Frugivore with a bill that looks too large for its body." },
-                    { name: "Peacock", sciName: "Pavo cristatus", clue: "Ground bird; male performs a dazzling 'eyed' fan dance." },
-                    { name: "Hummingbird", sciName: "Archilochus colubris", clue: "Nectar sipper; the only bird capable of flying backwards." },
-                    { name: "Parrot", sciName: "Psittacus erithacus", clue: "Grey intellectual; capable of mimicking human speech with context." },
-                    { name: "Ibis", sciName: "Eudocimus ruber", clue: "Brilliant red wading bird found in wetlands." }
+                    // Macaw: Ara -> Arini (Tribe)
+                    { name: "Macaw", sciName: "Ara macao", displayLatin: "Tribe: Arini", family: "Psittacidae", clue: "Vibrant rainforest loudmouth; cracks nuts with a powerful beak." },
+                    { name: "Toucan", sciName: "Ramphastos toco", family: "Ramphastidae", clue: "Frugivore with a bill that looks too large for its body." },
+                    { name: "Peacock", sciName: "Pavo cristatus", family: "Phasianidae", clue: "Ground bird; male performs a dazzling 'eyed' fan dance." },
+                    { name: "Hummingbird", sciName: "Archilochus colubris", family: "Trochilidae", clue: "Nectar sipper; the only bird capable of flying backwards." },
+                    { name: "Parrot", sciName: "Psittacus erithacus", family: "Psittacidae", clue: "Grey intellectual; capable of mimicking human speech with context." },
+                    { name: "Ibis", sciName: "Eudocimus ruber", family: "Threskiornithidae", clue: "Brilliant red wading bird found in wetlands." }
                 ]
             },
             {
-                emoji: "🐦", name: "Birds",
+                emoji: "🐦", name: "Songbirds", 
                 animals: [
-                    { name: "Robin", sciName: "Erithacus rubecula", clue: "Herald of spring; aggressive defender of its garden territory." },
-                    { name: "Blue Jay", sciName: "Cyanocitta cristata", clue: "Crested corvid; noisy mimic known for mobbing hawks." },
-                    { name: "Sparrow", sciName: "Passer domesticus", clue: "Urban survivor; ubiquitous brown bird that chirps in hedges." },
-                    { name: "Crow", sciName: "Corvus corone", clue: "All-black problem solver; recognizes individual human faces." },
-                    { name: "Pigeon", sciName: "Columba livia", clue: "Cliff-dwelling dove adapted to city skyscrapers; creates 'milk' for young." },
-                    { name: "Ostrich", sciName: "Struthio camelus", clue: "Flightless titan; lays the largest egg of any living animal." }
+                    { name: "Robin", sciName: "Erithacus rubecula", family: "Muscicapidae", clue: "Herald of spring; aggressive defender of its garden territory." },
+                    { name: "Blue Jay", sciName: "Cyanocitta cristata", family: "Corvidae", clue: "Crested corvid; noisy mimic known for mobbing hawks." },
+                    { name: "Sparrow", sciName: "Passer domesticus", family: "Passeridae", clue: "Urban survivor; ubiquitous brown bird that chirps in hedges." },
+                    { name: "Crow", sciName: "Corvus corone", family: "Corvidae", clue: "All-black problem solver; recognizes individual human faces." },
+                    { name: "Pigeon", sciName: "Columba livia", family: "Columbidae", clue: "Cliff-dwelling dove adapted to city skyscrapers; creates 'milk' for young." },
+                    { name: "Cardinal", sciName: "Cardinalis cardinalis", family: "Cardinalidae", clue: "Brilliant red songbird; angry looking, but distinct whistle." }
                 ]
             },
+            {
+                emoji: "🦃", name: "Ground Birds", 
+                animals: [
+                    { name: "Ostrich", sciName: "Struthio camelus", family: "Struthionidae", clue: "Flightless titan; lays the largest egg of any living animal." },
+                    { name: "Emu", sciName: "Dromaius novaehollandiae", family: "Dromaiidae", clue: "Australia's runner; survives the outback and won a war against humans." },
+                    { name: "Cassowary", sciName: "Casuarius casuarius", family: "Casuariidae", clue: "The 'murder bird'; wears a helmet and wields a dagger-like toe." },
+                    { name: "Turkey", sciName: "Meleagris gallopavo", family: "Phasianidae", clue: "Wattled forest dweller; Ben Franklin preferred it over the Eagle." },
+                    { name: "Roadrunner", sciName: "Geococcyx californianus", family: "Cuculidae", clue: "Desert sprinter; famous for eating rattlesnakes and outsmarting coyotes." },
+                    { name: "Kiwi", sciName: "Apteryx mantelli", family: "Apterygidae", clue: "New Zealand's icon; flightless, nocturnal, and whiskers like a cat." }
+                ]
+            },
+
+            // --- REPTILES & AQUATIC ---
             {
                 emoji: "🐊", name: "Reptiles",
                 animals: [
-                    { name: "Crocodile", sciName: "Crocodylus niloticus", clue: "Prehistoric ambush predator; has a V-shaped snout and toothy grin." },
-                    { name: "Cobra", sciName: "Ophiophagus hannah", clue: "Hooded serpent; rises up to display a spectacle pattern." },
-                    { name: "Tortoise", sciName: "Chelonoidis", clue: "Armored grazer; can live well over 100 years." },
-                    { name: "Iguana", sciName: "Iguana iguana", customLatin: "Class: Reptilia", clue: "Spiny arboreal lizard; sneezes salt and drops from trees when cold." },
-                    { name: "Komodo Dragon", sciName: "Varanus komodoensis", clue: "Island giant; hunts with bacteria-laden saliva and venom." },
-                    { name: "Boa", sciName: "Boa constrictor", customLatin: "Suborder: Serpentes", clue: "New World constrictor; gives birth to live young." },
-                    { name: "Chameleon", sciName: "Furcifer pardalis", clue: "Zygodactyl climber; changes color for mood, not just camouflage." }
+                    // Croc/Iguana/Komodo/Boa/Chameleon: All obscured using Clades/Synonyms
+                    { name: "Crocodile", sciName: "Crocodylus niloticus", displayLatin: "C. niloticus", family: "Clade: Eusuchia", clue: "Prehistoric ambush predator; has a V-shaped snout and toothy grin." },
+                    { name: "Cobra", sciName: "Ophiophagus hannah", family: "Elapidae", clue: "Hooded serpent; rises up to display a spectacle pattern." },
+                    { name: "Tortoise", sciName: "Chelonoidis", family: "Testudinidae", clue: "Armored grazer; can live well over 100 years." },
+                    { name: "Iguana", sciName: "Iguana iguana", displayLatin: "Iguanidae (Type Sp.)", family: "Clade: Pleurodonta", clue: "Spiny arboreal lizard; sneezes salt and drops from trees when cold." },
+                    { name: "Komodo Dragon", sciName: "Varanus komodoensis", displayLatin: "Varanus (Giant)", family: "Varanidae", clue: "Island giant; hunts with bacteria-laden saliva and venom." },
+                    { name: "Boa", sciName: "Boa constrictor", displayLatin: "Constrictor constrictor", family: "Boidae", clue: "New World constrictor; gives birth to live young." },
+                    { name: "Chameleon", sciName: "Furcifer pardalis", family: "Chamaeleonidae", clue: "Zygodactyl climber; changes color for mood, not just camouflage." }
                 ]
             },
             {
                 emoji: "🐸", name: "Amphibians",
                 animals: [
-                    { name: "Bullfrog", sciName: "Lithobates catesbeianus", clue: "Voracious eater; anything that fits in its mouth is food." },
-                    { name: "Toad", sciName: "Bufo bufo", clue: "Warty walker; produces bufotoxin to deter predators." },
-                    { name: "Salamandra", sciName: "Salamandra salamandra", clue: "Fire lizard of legend; warns predators with yellow spots." },
-                    { name: "Axolotl", sciName: "Ambystoma mexicanum", clue: "The 'Walking Fish'; stays in its larval form forever." },
-                    { name: "Frog (Tree)", sciName: "Agalychnis callidryas", clue: "Sticky-toed climber; famous for bright green skin and red eyes." } // <--- UPDATED
+                    // Salamandra -> Urodela (Order)
+                    { name: "Bullfrog", sciName: "Lithobates catesbeianus", family: "Ranidae", clue: "Voracious eater; anything that fits in its mouth is food." },
+                    { name: "Toad", sciName: "Bufo bufo", family: "Bufonidae", clue: "Warty walker; produces bufotoxin to deter predators." },
+                    { name: "Salamandra", sciName: "Salamandra salamandra", displayLatin: "Order: Urodela", family: "Salamandridae", clue: "Fire lizard of legend; warns predators with yellow spots." },
+                    { name: "Axolotl", sciName: "Ambystoma mexicanum", family: "Ambystomatidae", clue: "The 'Walking Fish'; stays in its larval form forever." },
+                    { name: "Frog (Tree)", sciName: "Agalychnis callidryas", family: "Hylidae", clue: "Sticky-toed climber; famous for bright green skin and red eyes." }
                 ]
             },
             {
                 emoji: "🐬", name: "Marine",
                 animals: [
-                    { name: "Whale", sciName: "Balaenoptera musculus", clue: "Gentle giant; heart is the size of a small car." },
-                    { name: "Dolphin", sciName: "Tursiops", clue: "Playful cetacean; uses distinct whistles to identify friends." },
-                    { name: "Shark", sciName: "Carcharodon carcharias", clue: "Cartilaginous predator; can sense electricity in the water." },
-                    { name: "Octopus", sciName: "Octopus vulgaris", customLatin: "Class: Cephalopoda", clue: "Master of disguise; has three hearts and blue blood." },
-                    { name: "Seal", sciName: "Phoca vitulina", clue: "Pinniped 'sea dog'; hauls out on rocks to rest." },
-                    { name: "Crab", sciName: "Callinectes sapidus", clue: "Decapod scavenger; walks sideways and wields pincers." }
+                    // Octopus: Octopus -> Octopoda
+                    { name: "Whale", sciName: "Balaenoptera musculus", family: "Balaenopteridae", clue: "Gentle giant; heart is the size of a small car." },
+                    { name: "Dolphin", sciName: "Tursiops", family: "Delphinidae", clue: "Playful cetacean; uses distinct whistles to identify friends." },
+                    { name: "Shark", sciName: "Carcharodon carcharias", family: "Lamnidae", clue: "Cartilaginous predator; can sense electricity in the water." },
+                    { name: "Octopus", sciName: "Octopus vulgaris", displayLatin: "Octopoda (Common)", family: "Octopodidae", clue: "Master of disguise; has three hearts and blue blood." },
+                    { name: "Seal", sciName: "Phoca vitulina", family: "Phocidae", clue: "Pinniped 'sea dog'; hauls out on rocks to rest." },
+                    { name: "Crab", sciName: "Callinectes sapidus", family: "Portunidae", clue: "Decapod scavenger; walks sideways and wields pincers." }
                 ]
             },
             {
                 emoji: "🐠", name: "Fish",
                 animals: [
-                    { name: "Goldfish", sciName: "Carassius auratus", clue: "Carp descendant; selectively bred for centuries for color." },
-                    { name: "Salmon", sciName: "Salmo salar", clue: "The Leaper; returns to its natal stream to spawn and die." },
-                    { name: "Clownfish", sciName: "Amphiprion ocellaris", clue: "Anemone dweller; immune to the stings of its host." },
-                    { name: "Seahorse", sciName: "Hippocampus guttulatus", clue: "Upright swimmer; the male carries the pregnancy." },
-                    { name: "Piranha", sciName: "Pygocentrus nattereri", clue: "Amazonian shoaler; possesses interlocking teeth and a scary reputation." }
+                    // Salmon: Salmonidae -> Salmoniformes
+                    { name: "Goldfish", sciName: "Carassius auratus", family: "Cyprinidae", clue: "Carp descendant; selectively bred for centuries for color." },
+                    { name: "Salmon", sciName: "Salmo salar", displayLatin: "S. salar", family: "Order: Salmoniformes", clue: "The Leaper; returns to its natal stream to spawn and die." },
+                    { name: "Clownfish", sciName: "Amphiprion ocellaris", family: "Pomacentridae", clue: "Anemone dweller; immune to the stings of its host." },
+                    { name: "Seahorse", sciName: "Hippocampus guttulatus", family: "Syngnathidae", clue: "Upright swimmer; the male carries the pregnancy." },
+                    { name: "Piranha", sciName: "Pygocentrus nattereri", family: "Serrasalmidae", clue: "Amazonian shoaler; possesses interlocking teeth and a scary reputation." }
                 ]
             },
             {
                 emoji: "🦋", name: "Insects+",
                 animals: [
-                    { name: "Butterfly", sciName: "Danaus plexippus", clue: "Migratory marvel; tastes with its feet and originated as a caterpillar." },
-                    { name: "Bee", sciName: "Apis mellifera", clue: "Important pollinator that lives in hives and produces wax." },
-                    { name: "Tarantula", sciName: "Brachypelma", clue: "Hairy arachnid; flicks urticating bristles when threatened." },
-                    { name: "Scorpion", sciName: "Pandinus imperator", clue: "Fluorescent arachnid; carries a stinger on a segmented tail." },
-                    { name: "Snail", sciName: "Cornu aspersum", clue: "Hermaphroditic grazer; carries its calcium house on its back." },
-                    { name: "Mantis", sciName: "Mantis religiosa", customLatin: "Class: Insecta", clue: "Patient ambush predator; famous for sexual cannibalism." }
+                    // Mantis: Mantis -> Dictyoptera
+                    { name: "Butterfly", sciName: "Danaus plexippus", family: "Nymphalidae", clue: "Migratory marvel; tastes with its feet and originated as a caterpillar." },
+                    { name: "Bee", sciName: "Apis mellifera", family: "Apidae", clue: "Important pollinator that lives in hives and produces wax." },
+                    { name: "Tarantula", sciName: "Brachypelma", family: "Theraphosidae", clue: "Hairy arachnid; flicks urticating bristles when threatened." },
+                    { name: "Scorpion", sciName: "Pandinus imperator", family: "Scorpionidae", clue: "Fluorescent arachnid; carries a stinger on a segmented tail." },
+                    { name: "Snail", sciName: "Cornu aspersum", family: "Helicidae", clue: "Hermaphroditic grazer; carries its calcium house on its back." },
+                    { name: "Mantis", sciName: "Mantis religiosa", displayLatin: "Order: Mantodea", family: "Mantidae", clue: "Patient ambush predator; famous for sexual cannibalism." }
                 ]
             }
         ];
@@ -361,27 +413,37 @@
             return <div ref={mapRef} className="w-full h-full"></div>;
         };
 
-        // --- HELPER: Filter Low Quality Records ---
+        // --- HELPER: Filter Low Quality Records (Updated) ---
         const isLowQualityRecord = (record) => {
-            // 1. Strict JSON/Property Checks
-            // We remove spaces to ensure we catch {"key":"value"} AND {"key": "value"}
+            // 1. CHECK OFFICIAL ANNOTATIONS (The most accurate source)
+            // iNat Attribute 22 = "Evidence of Presence"
+            // Values: 24=Track, 25=Scat, 26=Molt, 27=Bone, 23=Feather, 31=Egg, 28=Organism
+            if (record.annotations && record.annotations.length > 0) {
+                for (const note of record.annotations) {
+                    // Check "Evidence of Presence" (ID 22)
+                    if (note.attribute_id === 22) {
+                        // If the value is NOT 28 (Organism), it's likely a trace (scat, track, etc.)
+                        if (note.value_id !== 28) return true; 
+                    }
+                    // Check "Alive or Dead" (ID 9) -> Value 10 is "Dead"
+                    if (note.attribute_id === 9 && note.value_id === 10) return true;
+                }
+            }
+
+            // 2. Strict JSON/Property Checks (Legacy/Backup)
             const dynProps = (record.dynamicProperties || "").toLowerCase().replace(/\s/g, "");
-            
             if (dynProps.includes('"evidenceofpresence":"track"')) return true;
             if (dynProps.includes('"evidenceofpresence":"scat"')) return true;
             if (dynProps.includes('"evidenceofpresence":"bone"')) return true;
-            if (dynProps.includes('"evidenceofpresence":"egg"')) return true; // <--- NEW CHECK
+            if (dynProps.includes('"evidenceofpresence":"egg"')) return true;
             if (dynProps.includes('"vitality":"dead"')) return true;
-
-            // 2. Explicit Field Check (if API returns 'vitality' column)
-            if (record.vitality && record.vitality.toLowerCase().includes("dead")) return true;
 
             // 3. General Keyword Sweep (The "Safety Net")
             const bannedKeywords = [
                 "track", "print", "footprint", "paw", "scat", "feces", "dropping", "poop", "dung", "spoor",
                 "burrow", "nest", "den", "moult", "shed", "dead", "roadkill", "dor", "carcass", "remains", 
                 "bone", "skull", "skeleton", "corpse", "killed", "died", "road kill", "found dead",
-                "egg", "clutch" // <--- Added to catch "clutch of eggs" descriptions
+                "egg", "clutch"
             ];
             
             const textFields = [
@@ -428,6 +490,32 @@
             </div>
             );
         };
+
+        // --- HELPER: UNIQUE ANIMAL SELECTION ---
+const getUniqueAnimal = (allAnimals) => {
+    // 1. Get history from LocalStorage
+    const historyJSON = localStorage.getItem('wildGuess_played');
+    let played = historyJSON ? JSON.parse(historyJSON) : [];
+
+    // 2. Filter out animals we've already seen
+    const available = allAnimals.filter(a => !played.includes(a.name));
+
+    // 3. If we've seen everything, clear history and restart
+    if (available.length === 0) {
+        played = [];
+        localStorage.removeItem('wildGuess_played');
+        return allAnimals[Math.floor(Math.random() * allAnimals.length)];
+    }
+
+    // 4. Pick a random animal from the remaining pool
+    const selected = available[Math.floor(Math.random() * available.length)];
+
+    // 5. Save this pick to history
+    played.push(selected.name);
+    localStorage.setItem('wildGuess_played', JSON.stringify(played));
+
+    return selected;
+};
 
         // --- MAIN COMPONENT ---
         const WildGuessGame = () => {
@@ -570,71 +658,90 @@
                 preloadNextGame();
             };
 
-            // --- FIXED API FETCH (Licenses as separate params) ---
-            const fetchValidAnimal = async (retryCount = 0) => {
-                if (retryCount > 10) throw new Error("Game Init Failed");
+            // --- FETCH DATA (With Dog Exclusion, Track Filter, & Cryptic Names) ---
+            const fetchValidAnimal = async () => {
+                // 1. Get History
+                const historyJSON = localStorage.getItem('wildGuess_played');
+                let played = historyJSON ? JSON.parse(historyJSON) : [];
 
-                // 1. Pick a Random Animal (excluding used ones if possible)
-                let availableAnimals = ALL_ANIMALS_FLAT.filter(a => !usedAnimals.has(a.name));
-                if (availableAnimals.length === 0) {
-                    availableAnimals = ALL_ANIMALS_FLAT;
-                    setUsedAnimals(new Set());
+                // 2. Filter available animals
+                const available = ALL_ANIMALS_FLAT.filter(a => !played.includes(a.name));
+
+                // 3. Reset if we've seen them all
+                let target;
+                if (available.length === 0) {
+                    played = [];
+                    localStorage.removeItem('wildGuess_played');
+                    target = ALL_ANIMALS_FLAT[Math.floor(Math.random() * ALL_ANIMALS_FLAT.length)];
+                } else {
+                    target = available[Math.floor(Math.random() * available.length)];
                 }
-                const targetAnimal = availableAnimals[Math.floor(Math.random() * availableAnimals.length)];
-                
-                // 2. Strict API Query for iNaturalist Research-Grade (2025-2026)
-                const endpoint = "https://api.gbif.org/v1/occurrence/search";
-                const params = new URLSearchParams();
-                
-                params.append("scientificName", targetAnimal.sciName);
-                params.append("datasetKey", "50c9509d-22c7-4a22-a47d-8c48425ef4a7"); // iNaturalist Research-Grade
-                params.append("basisOfRecord", "HUMAN_OBSERVATION");
-                params.append("hasCoordinate", "true");
-                params.append("hasGeospatialIssue", "false");
-                params.append("mediaType", "StillImage");
-                params.append("occurrenceStatus", "PRESENT");
-                
-                // IMPORTANT FIX: Append licenses separately
-                params.append("license", "CC_BY_4_0");
-                params.append("license", "CC0_1_0");
-                
-                params.append("year", "2025,2026"); 
-                params.append("limit", "20"); 
+
+                // 4. Save to history
+                if (!played.includes(target.name)) {
+                     played.push(target.name);
+                     localStorage.setItem('wildGuess_played', JSON.stringify(played));
+                }
+
+                // 5. Randomize Page
+                const randomPage = Math.floor(Math.random() * 30) + 1; 
+
+                console.log(`Hunting for: ${target.name} (${target.sciName}) on Page ${randomPage}`);
 
                 try {
-                    const response = await fetch(`${endpoint}?${params.toString()}`);
-                    if (!response.ok) {
-                        await new Promise(r => setTimeout(r, 500)); 
-                        return fetchValidAnimal(retryCount + 1);
+                    // API Call: Excludes Domestic Dogs (47144)
+                    const response = await fetch(
+                        `https://api.inaturalist.org/v1/observations?taxon_name=${target.sciName}&quality_grade=research&photos=true&per_page=1&page=${randomPage}&without_taxon_id=47144`
+                    );
+                    
+                    const data = await response.json();
+
+                    if (!data.results || data.results.length === 0) {
+                        console.warn("No results on random page, retrying...");
+                        return fetchValidAnimal(); 
                     }
 
-                    const json = await response.json();
-
-                    if (!json.results || json.results.length === 0) {
-                        return fetchValidAnimal(retryCount + 1);
+                    const obs = data.results[0];
+                    
+                    // REJECT Low Quality Records
+                    if (isLowQualityRecord(obs)) {
+                        console.warn("Rejected Low Quality Record:", obs.id);
+                        return fetchValidAnimal();
                     }
 
-                    const shuffledRecords = json.results.sort(() => 0.5 - Math.random());
+                    // Validate Coordinates & Photos
+                    const lat = obs.geojson?.coordinates[1] || obs.location?.split(',')[0];
+                    const lng = obs.geojson?.coordinates[0] || obs.location?.split(',')[1];
 
-                    for (const record of shuffledRecords) {
-                        const image = record.media?.find(m => m.type === 'StillImage')?.identifier;
-                        if (!image) continue;
+                    if (!lat || !lng || !obs.photos || obs.photos.length === 0) {
+                        return fetchValidAnimal(); 
+                    }
 
-                        if (isLowQualityRecord(record)) continue;
+                    const dateObj = new Date(obs.observed_on || obs.created_at);
+                    const dateStr = dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
 
-                        try {
-                            await checkImageValidity(image);
-                            setUsedAnimals(prev => new Set(prev).add(targetAnimal.name));
-                            return processRecord(record, targetAnimal, image);
-                        } catch (e) {
-                            continue;
+                    return {
+                        name: target.name,           
+                        correctName: target.name, 
+                        // MASKING LOGIC: Use 'displayLatin' if it exists, otherwise use real sciName
+                        sciName: target.displayLatin || target.sciName,     
+                        family: target.family || "Unknown Family", 
+                        image: obs.photos[0].url.replace('square', 'original'),
+                        lat: parseFloat(lat),
+                        lng: parseFloat(lng),
+                        location: obs.place_guess || "Unknown Wilderness",
+                        recordedBy: obs.user?.login || obs.user?.name || "Unknown Observer",
+                        link: obs.uri,
+                        stats: {
+                            trait: target.clue || target.hint || "No hint available.",
+                            date: dateStr,
+                            year: dateObj.getFullYear()
                         }
-                    }
+                    };
 
-                    return fetchValidAnimal(retryCount + 1);
-
-                } catch (e) {
-                    return fetchValidAnimal(retryCount + 1);
+                } catch (error) {
+                    console.error("Fetch failed:", error);
+                    return fetchValidAnimal();
                 }
             };
 
@@ -814,9 +921,8 @@
                                         </span>
                                     </>
                                 ) : (
-                                    // CHANGED: Removed 'font-freckle' to use the normal system font
                                     <span className="text-2xl font-black tracking-widest uppercase drop-shadow-md">
-                                        {preloadedData ? "START HUNT" : "PLAY GAME"}
+                                        START HUNT
                                     </span>
                                 )}
                             </button>
@@ -843,6 +949,19 @@
             <div className="flex-1 flex flex-col bg-white m-2 rounded-xl shadow-sm overflow-hidden relative order-1">
             <div className="h-2 bg-slate-200 w-full flex-shrink-0"><div className="h-full bg-emerald-500 transition-all duration-1000 linear" style={{ width: `${(timeLeft / 10) * 100}%` }}></div></div>
             <div className="flex-1 relative">
+
+            {/* --- GLOBAL EXIT BUTTON (Small) --- */}
+                    <button
+                        onClick={() => setView('menu')}
+                        className="absolute top-2 left-2 z-[60]
+                        bg-gradient-to-b from-blue-400 to-blue-600 border-2 border-slate-300 rounded shadow-md
+                        text-white font-bold uppercase tracking-widest text-[10px] px-2 py-1 flex items-center gap-1
+                        hover:from-blue-500 hover:to-blue-700 active:scale-95 transition-all"
+                        title="Exit to Main Menu"
+                    >
+                        <span className="text-xs filter drop-shadow-sm">🔙</span>
+                        <span className="drop-shadow-sm">EXIT</span>
+                    </button>
 
                             {/* --- MAP LAYER --- */}
             <div className="absolute inset-0" key={gameId}>
